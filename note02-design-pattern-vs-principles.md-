@@ -1,0 +1,16 @@
+# NOTE 02: Design Patterns and Principles
+Mục tiêu của chương này là giúp bạn thiết kế các lớp và interface sao cho dễ đọc, dễ bảo trì và mở rộng trong tương lai.
+
+## Designing an Interface
+Nhắc lại một chút về inteface, inteface là một kiểu dữ liệu abtract
+
+### Purpose of an Interface
+Interface cung cấp cho lập trình viên A có thể sử dụng các chức năng mà lập trình viên B viết ra mà không ảnh hưởng đến triển khai của nó
+
+## Introducing Functional Programming
+
+## 3.  Understanding Design Principles 
+Các nguyên tắc thiết kế (design principle) là những lời khuyên mà các lập trình viên nên tuân theo trong quá trình thiết kế lớp. Việc áp dụng tốt các nguyên tắc thiết kế giúp code của bạn dễ đọc hơn, dễ bảo trì và triển khai hơn.
+
+
+
