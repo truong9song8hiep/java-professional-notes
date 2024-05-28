@@ -1,40 +1,48 @@
 # NOTE 10: JDBC
-JDBC là viết tắt của Java Database Connectivity
-## Introducing Relational Databases and SQL
+JDBC là viết tắt của Java Database Connectivity, là một tập hợp các class và inteface hỗ trợ kết nối và thao tác với database.
+## 1. Introducing Relational Databases and SQL
 ...
 ## 2. Introducing the Interfaces of JDBC
-Có 4 inteface chính mà chúng ta sẽ làm việc với JDBC, và những lớp triển khai nó được các nhà cung cấp sẵn trong file jar, 
-Driver: Knows how to get a connection to the database
-Connection: Knows how to communicate with the database
-Statement: Knows how to run the SQL
-ResultSet: Knows what was returned by a SELECT query
+Có 4 inteface chính mà chúng ta thường sử dụng khi làm việc với JDBC: 
+- `Driver` thiết lập kết nối.
+- `Connection` giữ kết nối.
+- `Statement`: tuyên bố các câu lệnh sql.
+- `ResultSet`: chứa kết quả trả về từ database.
 
-Một kết nối bằng jdbc điển hình:
+Dưới đây là một kết nối bằng JDBC điển hình:
 ```java
 package com.wiley.ocp.connection;
 import java.sql.*;
 public class MyFirstDatabaseConnection {
  public static void main(String[] args) throws SQLException {
- String url = "jdbc:derby:zoo";
- try (Connection conn = DriverManager.getConnection(url);
- Statement stmt = conn.createStatement();
- ResultSet rs = stmt.executeQuery("select name from animal")) {
- while (rs.next())
- System.out.println(rs.getString(1));
- }
+  String url = "jdbc:derby:zoo";
+  try (Connection conn = DriverManager.getConnection(url);
+  Statement stmt = conn.createStatement();
+  ResultSet rs = stmt.executeQuery("select name from animal")) {
+  while (rs.next())
+  System.out.println(rs.getString(1));
+  }
  }
 }
 ```
 
 ## 3. Connecting to a Database
-Bước đầu tiên là kết nối với database, để kết nối với database, chúng ta cần một url trỏ tới database đó. Một jdbc url là một chuỗi gồm 3 phần cách nhau bởi dấu `:`, ví dụ: `jdbc:postgres://localhost:5432/zoo`, phần đầu tiên là chung `jdbc`, phần thứ 2 xác định loại db, phần cuối xác định đường đãn đến nó.
+Để kết nối với một cơ sở dữ liệu bằng cách sử dụng JDBC, bạn cần một URL JDBC chỉ định vị trí và thông tin cần thiết để kết nối với cơ sở dữ liệu đó. URL JDBC có cấu trúc như sau: `jdbc:<db_type>://<host>:<port>/<database_name>`
 
-Tiếp theo sử dụng hàm `DriverManager.getConnection(String url)` để thực hiện kết nối, nếu thành công, một đối tượng Connection sẽ được trả về
+Sau khi đã có URL JDBC, bạn có thể sử dụng phương thức tĩnh `DriverManager.getConnection(String url)` để thực hiện kết nối với cơ sở dữ liệu. Nếu kết nối thành công, phương thức này sẽ trả về một đối tượng `Connection`.
+```java
+String url = "jdbc:derby:zoo";
+Connection conn = DriverManager.getConnection(url);
+```
 
- một cách thứ 2 là sử dụng DataSource, cách này được sử dụng trong thực tế vì nó nhiều tính năng hơn, ví dụ kết nối pool, lưu trữ kết nối ngoài ứng dụng...
+Một cách khác là sử dụng `DataSource`, cách tiếp cận thường được sử dụng trong các ứng dụng thực tế vì nó cung cấp nhiều tính năng hữu ích như quản lý kết nối, hỗ trợ pooling, và dễ dàng tích hợp với các container Java EE.
+```java
+DataSource dataSource = DataSourceFactory.getDataSource();
+Connection connection = dataSource.getConnection();
+```
 
  ## 4. Obtaining a Statement
-Sau khi kết nối xong, bạn cần một "người ra lệnh" để thực thi SQL, "người ra lệnh" có nhiệm vụ tuyên bố câu lệnh sql cho database, inteface `Statement` đại diện cho "người ra lệnh" đó. 
+Sau khi thiết lập kết nối với cơ sở dữ liệu, bạn cần một "người ra lệnh" để tuyên bố các câu lệnh SQL cho database, inteface `Statement` đại diện cho "người ra lệnh" đó.
 ```java
 Statement stmt = conn.createStatement();
 Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
@@ -42,8 +50,8 @@ Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CON
 ### Choosing a ResultSet Type 
 Mặc định  ResultSet is in TYPE_FORWARD_ONLY mode
 
-##  Executing a Statement
-Sau khi đá có "ngườ ra lệnh" Statment, chúng ta sẽ tiến hành ra lệnh cho database thực thi sql bằng các hàm có sẵn, tùy thuộc vào loại lệnh nào mà bạn muốn, các câu lệnh làm thay đổi kích thước và cấu trúc của bảng như: DELETE , INSERT , or UPDATE chúng ta dùng hàm `executeUpdate()`, kết quả trả về sẽ là một biến int, là số hàng mà bị ảnh hưởng từ câu lệnh
+##  5. Executing a Statement
+Sau khi đá có "người ra lệnh" Statment, chúng ta sẽ tiến hành ra lệnh cho database thực thi sql bằng các hàm có sẵn, tùy thuộc vào loại lệnh nào mà bạn muốn, các câu lệnh làm thay đổi kích thước và cấu trúc của bảng như: DELETE , INSERT , or UPDATE chúng ta dùng hàm `executeUpdate()`, kết quả trả về sẽ là một biến int, là số hàng mà bị ảnh hưởng từ câu lệnh
 ```java
 Statement stmt = conn.createStatement();
 12: int result = stmt.executeUpdate(
