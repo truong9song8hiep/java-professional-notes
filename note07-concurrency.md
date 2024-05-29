@@ -293,8 +293,57 @@ thông thường 16 thread cho một 2-cpu là chậm, việc đọc ghi có th�
 
 
 ## 3. Synchronizing Data Access
-Có 2 luồng cùng truy cập vào một biến, làm sao để ngăn việc này.
+Có 2 hoặc nhiều luồng cùng truy cập vào một biến, làm sao để ngăn việc này. Cho một ví dụ về thêm cừu
+```java
+import java.util.concurrent.*;
+public class SheepManager {
+ private int sheepCount = 0;
+ private void incrementAndReport() {
+ System.out.print((++sheepCount)+" ");
+ }
+ public static void main(String[] args) {
+ ExecutorService service = null;
+ try {
+ service = Executors.newFixedThreadPool(20);
+ SheepManager manager = new SheepManager();
+ for(int i=0; i<10; i++)
+ service.submit(() -> manager.incrementAndReport());
+ } finally {
+ if(service != null) service.shutdown();
+ }
+ }
+}
+```
+Một vấn đề xảy ra là khi cả 2 luồng cùng đọc giá trị cũ trước khi 1 trong 2 tăng giá trị mới, và thế là cả 2 cùng ,  race condition.
 
+### Protecting Data with Atomic Classes
+Java cung cấp gói `java.util.concurrent.atomic` giúp hỗ trợ kiểm soát truy cập đối với các biến nguyên thủy và đối tượng. nó cung cấp các class AtomicInteger...
+
+### Improving Access with Synchronized Blocks 
+Làm thế nào để cải thiện kết quả các công nhan sẽ báo cáo đúng thứ tự, cách thông trường là sử dụng lock để đồng bộ hóa truy cập. Trong java bất kỳ đối tượng nào cũng có thể được đồng bộ hóa, nếu thêm sychronized.
+```java
+SheepManager manager = new SheepManager();
+ synchronized(manager) {
+ // Work to be completed by one thread at a time
+ } 
+```
+Ví dụ trên được xem là một khối đồng bộ hóa, mỗi thread sẽ kiếm tra trong khối có bất kì thread nào khác không 
+
+
+###  Synchronizing Methods 
+chúng ta có thể sư dụng từ khóa sychronized để làm đồng bộ hóa hàm. 2 hàm dưới là tương đương
+```java
+private void incrementAndReport() {
+ synchronized(this) {
+ System.out.print((++sheepCount)+" ");
+ }
+ }
+ private synchronized void incrementAndReport() {
+ System.out.print((++sheepCount)+" ");
+ }
+```
+### Understanding the Cost of Synchronization
+Việc đồng bộ hóa làm cho nhiều luồng phải chờ đợi lẫn nhau, đồng bộ hóa đảm bảo tính toàn vẹn dữ liệu nhưng phải đánh đổi bằng hiệu năng.
 
 
 ## 4. Using Concurrent Collections
@@ -326,4 +375,78 @@ public void put(String key, String value) {
 ### Understanding Memory Consistency Errors
 mục đích của concurrent collection là giải quyết vấn đề Memory Consistency Errors, Memory Consistency Errors sảy ra khi 2 thread cùng trỏ đến một biến 
 
+### Working with Concurrent Classes
 
+### Obtaining Synchronized Collections
+Bên cạnh các lớp không đồng thời, Java còn cung cấp thêm một số hàm để chuyển đổi collection thường > collection ../
+
+
+##  Working with Parallel Streams 
+###  Creating Parallel Streams 
+Có 2 cách để tạo ra một stream song song:
+
+ parallel() 
+```java
+Stream<Integer> stream = Arrays.asList(1,2,3,4,5,6).stream();
+ Stream<Integer> parallelStream = stream.parallel();
+Stream<Integer> parallelStream2 = Arrays.asList(1,2,3,4,5,6).parallelStream();
+```
+###  Processing Tasks in Parallel 
+Tạo pstr rất dễ dàng, chúng ta sẽ xem ví dụ sau
+```java
+ Arrays.asList(1,2,3,4,5,6).stream().forEach(s -> System.out.print(s+" ")); //kết quả: 1 2 3 4 5 6
+Arrays.asList(1,2,3,4,5,6).parallelStream().forEach(s -> System.out.print(s+" ")); // kết quả khác nhau sau mỗi lần chay
+Arrays.asList(1,2,3,4,5,6).parallelStream().forEachOrdered(s -> System.out.print(s+" "));
+```
+forEch trên một pstr tương đương với việc gửi biểu thức lamda đến một tập các thread excutor. Stream có một hàm duyệt là forEachOrdered, nó sắp xếp lại phần tử
+### Understanding Performance Improvements
+Một ứng dụng khác để biết được luồng song song nâng caao hiêu suất ntn, giả sử có 4000 bản ghi, mỗi bảng ghi mất 10 milisecond để hoàn thành.
+```java
+import java.util.*;
+public class WhaleDataCalculator {
+ public int processRecord(int input) {
+ try {
+ Thread.sleep(10);
+ } catch (InterruptedException e) {
+ // Handle interrupted exception
+ }
+ return input+1;
+ }
+ public void processAllData(List<Integer> data) {
+ data.stream().map(a -> processRecord(a)).count();
+ }
+ public static void main(String[] args) {
+ WhaleDataCalculator calculator = new WhaleDataCalculator();
+ // Define the data
+ List<Integer> data = new ArrayList<Integer>();
+ for(int i=0; i<4000; i++) data.add(i);
+ // Process the data
+ long start = System.currentTimeMillis();
+ calculator.processAllData(data);
+ double time = (System.currentTimeMillis()—start)/1000.0;
+ // Report results
+ System.out.println("\nTasks completed in: "+time+" seconds");
+ }
+}
+```
+kết quả có thể đoán trước được là 4000* 10 = 40000 mili giây = 40 giây, bây giờ ta đổi lại thành paralleStream, kết quả sẽ giảm khoảng 1/4. Vậy để cải thiện hiệu suất ta cứ sử dụng luồng song song? không nó hiệu suất khi làm việc với dữ liệu lớn, còn nhỏ thì thậm chí phản tác dụng vì nó còn quan tâm đến cơ chế phân chia tài nguyên...
+
+###  Understanding Independent Operations 
+pstr có thể cải thiện hiệu suất vì các hoạt động trong stream là độc lập, nó có nghĩa là kết quả tính toán của một luồng không ảnh hưởng đến kết quả của luồng khác, ví dụ hàm processRecord() tính toán không ảnh hưởng bởi các luồng, một ví dụ khác
+```java
+ Arrays.asList("jackal","kangaroo","lemur") .parallelStream().map(s -> {System.out.println(s); return s.toUpperCase();}).forEach(System.out::println);
+```
+tuy nhiên thứ tự có thể bị thay đổi
+###  Avoiding Stateful Operations 
+stateful lambda expression là biểu thức mà nó thay đổi trạng thái của một biến bên ngoài, ví dụ:
+```java
+ List<Integer> data = Collections.synchronizedList(new ArrayList<>()); 
+Arrays.asList(1,2,3,4,5,6).parallelStream().map(i -> {data.add(i); return i;}) // AVOID STATEFUL LAMBDA EXPRESSIONS!
+ .forEachOrdered(i -> System.out.print(i+" "));
+
+System.out.println();
+ for(Integer e: data) {
+ System.out.print(e+" ");
+ }
+```
+### Using Concurrent Collections with Parallel Streams
